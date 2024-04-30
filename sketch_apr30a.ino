@@ -7,7 +7,7 @@ Stepper: 23,25,27,29;
 Photresistor: A0
 Buttons: (off) 49 (on) 47; 
 LEDS: RED(Locked) 53 Green(Unlocked) 51;
-RFID: 13,15,17,19,21
+RFID: 45,43,41,39,37
 */
 
 
@@ -15,6 +15,8 @@ RFID: 13,15,17,19,21
 #define TBE 0x20
 #include <LiquidCrystal.h>
 #include <Keypad.h>
+#include <Stepper.h>
+#include <RTC.h>
 
 const int ROW_NUM = 4;
 const int COLUMN_NUM = 4; 
@@ -41,8 +43,11 @@ volatile unsigned char *myTIMSK1  = 0x6F;
 volatile unsigned char *myTIFR1   = 0x36;
 volatile unsigned int  *myTCNT1   = 0x84;
 
-int passcode, keypadInput;
-passcode = 1234;
+int passcode[0] = 1;
+passcode[1] = 2;
+passcode[2] = 3;
+passcode[3] = 4;
+int keypadInput[4];
 bool running, passcodeCheck, rfidCheck;
 char relock;
 
@@ -50,28 +55,47 @@ void setup()
 {
   U0init(9600);
   *portDDRB |= 0x40;
+  lcd.print("Enter passcode");
 }
 
 void loop() 
 {
+  int correctNums = 0; 
   while(U0kbhit() == 0){
+
+    }
     while(running){
         //get input from light sensor and set LED brightness
-        //get input from keypad set to keypadInput
-        //display inputted numbers to the LED
-        if(keypadInput == passcode){
-            passcodeCheck = true; 
-        }
-        else{
-          *pinB |= 0x40;
-          my_delay(250);
-        }
-        if(passcodeCheck && rfidCheck){
-            //OpenLock
-            //nice beep
+        char key1 = keypad.getKey();
+        if(key1 == '*'){
+          for(int i = 0; i < 4; i+){
+            char key = keypad.getKey();
+            if(key){
+              lcd.setCursor(0,i+1);
+              lcd.print(key);
+              keypadInput[i] = key;
+            }
+          }
+          for(int i = 0; i < 4; i++){
+            if(keypadInput[i] == passcode[i]){
+              correctNums++;
+            }
+            else{
+              *pinB |= 0x40;
+              my_delay(250);
+              lcd.clear();
+              lcd.print("INCORRECT PASSCODE TRY AGAIN");
+            }
+          }
+          if(correctNums == 4){
+            passcodeCheck = true;
+            if(passcodeCheck == true || rfidCheck == true){
+
+            }
+          }
         }
         //check for keypad input for relocking # 
-        if(relock == '#'){
+        if(key1 == '#'){
             //make close lock
             //reverse nice beep
         }        
