@@ -4,7 +4,7 @@ Project: Door Lock that uses:
 
 KeyPad for a set Passcode and relocking
 
-RFID that has to be active for the lock to open
+RFID that can be used to open the lock without a passcode
 
 Light Sensor to change LED brightness depending on the time of day
 
