@@ -6,7 +6,7 @@ RealTime = 22,24,26;
 Stepper: 23,25,27,29;
 Photresistor: A0
 Buttons: (off) 49 (on) 47; 
-LEDS: RED(Locked) 53 Green(Unlocked) 51;
+LEDS: RED(Locked) 10 Green(Unlocked) 9;
 RFID: 45,43,41,39,37
 */
 
@@ -20,9 +20,17 @@ RFID: 45,43,41,39,37
 #include <SPI.h>
 #include <MFRC522.h>
 #include <I2C_RTC.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #define SS_PIN 53
 #define RST_PIN 5
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+#define OLED_ADDR 0x3C
+
+Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
+
 MFRC522 mfrc522(SS_PIN, RST_PIN);
 
 const int ROW_NUM = 4;
@@ -43,6 +51,15 @@ volatile unsigned char *portB = 0x25;
 volatile unsigned char *portDDRB = 0x24;
 volatile unsigned char *pinB = 0x23;
 
+volatile unsigned char* port_e = (unsigned char*) 0x2E; 
+volatile unsigned char* ddr_e  = (unsigned char*) 0x2D; 
+volatile unsigned char* pin_e  = (unsigned char*) 0x2C;
+
+volatile unsigned char* port_d = (unsigned char*) 0x2B; 
+volatile unsigned char* ddr_d  = (unsigned char*) 0x2A; 
+volatile unsigned char* pin_d  = (unsigned char*) 0x29; 
+
+
 volatile unsigned char *myTCCR1A = 0x80;
 volatile unsigned char *myTCCR1B = 0x81;
 volatile unsigned char *myTCCR1C = 0x82;
@@ -55,7 +72,7 @@ String MasterTag = "CFAFDF1D";
 String TagID = "";
 
 char passcode[4] = { '1', '2', '3', '4' };
-char keypadInput[4];
+
 
 /*const int SCL = 4 SDA = 3;
 LiquidCrystal lcd(SCL, SDA);
@@ -75,78 +92,200 @@ Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_N
 bool running = true;
 bool passcodeCheck, rfidCheck;
 char relock;
-int stepsPerRevolution = 2048;
-Stepper myStepper(stepsPerRevolution,23,25,27,29);
+int stepsPerRevolution = 500;
+int invertedSPR = -500;
+Stepper myStepper(stepsPerRevolution, 23, 25, 27, 29);
 int motSpeed = 10;
+int locked = 1;
 
 void setup() {
   //U0init(9600);
+  adc_init();
   Serial.begin(9600);
+  *ddr_d |= 0x01;
+  *ddr_e |= 0x08;
   *portDDRB |= 0x40;
   SPI.begin();
   mfrc522.PCD_Init();
   mfrc522.PCD_DumpVersionToSerial();
   myStepper.setSpeed(motSpeed);
   //lcd.print("Enter Passcode");
+  display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
+  display.clearDisplay();
+
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(0, 0);
+  display.println("==========");
+
+  display.setTextSize(2);
+  display.setTextColor(WHITE);
+  display.setCursor(3, 17);
+  display.println("Smart Lock");
+  display.setCursor(30, 40);
+  display.println("V 2.8");
+  display.display();
+  delay(2000);
+  display.clearDisplay();
+  display.setCursor(25, 0);
+  display.setTextSize(2);
+  display.println("Press");
+  display.setTextSize(1);
+  display.setCursor(17, 20);
+  display.println("* To Unlock or");
+  display.setCursor(28, 30);
+  display.println("# To lock");
+  display.display();
+  display.setTextSize(2);
 }
 
 void loop() {
   int correctNums = 0;
+  int ID = 0;
 
-  while (getID() == true){
   while (running == true) {
-     //get input from light sensor and set LED brightness
-      char key1 = keypad.getKey();
-      if (key1 == '*') {
-        //lcd.clear();
-        for (int i = 0; i < 4;) {
-          char key = keypad.getKey();
-          if (TagID == MasterTag) {
-            break;
-          }
-          if (key) {
-
-            Serial.println(key);
-            //lcd.setCursor(i,0);
-            //lcd.print(key);
-            keypadInput[i] = key;
-            delay(100);
-            i++;
-          }
+   //*port_e |= 0x08;
+   //*port_d |= 0x01;
+   //port_d &= 0xFE;
+   //port_e &= 0xF7;
+    unsigned int adc = adc_read(15);
+    int tempf = adc/7.1;
+    Serial.println(tempf);
+    if(tempf >= 120) {
+      display.clearDisplay();
+      display.setCursor(0, 0);
+      display.println("Fire Alert");
+       *pinB |= 0x40;
+       my_delay(1000);
+      display.display();
+      delay(10);
+      running = false;
+    }
+    //get input from light sensor and set LED brightness
+    char key1 = keypad.getKey();
+    if (key1 == '*') {
+      display.clearDisplay();
+      display.display();
+      char keypadInput[4];
+      for (int i = 0; i < 4;) {
+        char key = keypad.getKey();
+        ID = getID();
+        if (TagID == MasterTag) {
+          break;
         }
-        for (int i = 0; i < 4; i++) {
-
-          if (keypadInput[4] > 0 || TagID == MasterTag) {
-            if (keypadInput[i] == passcode[i]) {
-              correctNums++;
-            }
-            if (correctNums == 4 || TagID == MasterTag) {
-              //lcd.clear();
-              //lcd.print("Access Granted");
-              //turn on step motor, turn on green light
-              myStepper.step(stepsPerRevolution);
-              delay(100);
-              myStepper.step(0);
-              *pinB |= 0x40;
-              my_delay(300);
-            } else if(correctNums != 4){
-              *pinB |= 0x40;
-              my_delay(250);
-              //lcd.print('keypadInput');
-              //turn on red light
-            }
-          }
-        }
-        //check for keypad input for relocking #
-        if (key1 == '#') {
-          //make close lock
-          //reverse nice bee
+        if (locked == 0) {
+          display.setCursor(20, 17);
+          display.println("Already");
+          display.setCursor(18, 37);
+          display.println("Unlocked");
+          display.display();
+          delay(2000);
           *pinB |= 0x40;
-          my_delay(250);
-          myStepper.step(-stepsPerRevolution);
-          delay(100);
+          my_delay(1000);
+          delay(500);
+          *pinB |= 0x00;
+          display.clearDisplay();
+          display.setCursor(20, 17);
+          display.println("Locking");
+          display.display();
+          myStepper.step(invertedSPR);
+          delay(1000);
           myStepper.step(0);
+          display.clearDisplay();
+          display.setCursor(30, 0);
+          display.println("Locked");
+          display.setCursor(20, 30);
+          display.println("Press *");
+          display.setCursor(10, 50);
+          display.println("To Unlock");
+          display.display();
+          locked = 1;
+          break;
         }
+        if (key) {
+          display.setCursor(i * 11 + 40, 17);
+          display.println(key);
+          display.display();
+          Serial.println(key);
+          keypadInput[i] = key;
+          delay(100);
+          i++;
+        }
+      }
+      for (int g = 0; g < 4; g++) {
+        if (keypadInput[g] > 0 || TagID == MasterTag) {
+          if (keypadInput[g] == passcode[g]) {
+            correctNums++;
+          }
+          if (correctNums == 4 || TagID == MasterTag) {
+            //turn on step motor, turn on green light
+            display.clearDisplay();
+            display.setCursor(6, 0);
+            display.println("Unlocking");
+            display.display();
+            display.clearDisplay();
+            myStepper.step(stepsPerRevolution);
+            delay(100);
+            myStepper.step(0);
+            *pinB |= 0x40;
+            my_delay(500);
+            delay(500);
+            *pinB |= 0x00;
+
+            display.setCursor(6, 0);
+            display.println(" Unlocked");
+            display.setCursor(20, 30);
+            display.println("Press #");
+            display.setCursor(20, 50);
+            display.println("To lock");
+            display.display();
+            locked = 0;
+            correctNums = 0;
+            TagID = "";
+          } else if (correctNums != 4) {
+            *pinB |= 0x40;
+            my_delay(250);
+            delay(500);
+            *pinB |= 0x00;
+
+          }
+        }
+      }
+      //check for keypad input for relocking #
+    }
+    if (key1 == '#') {
+      //make close lock
+      //reverse nice bee
+      if (locked == 0) {
+        *pinB |= 0x40;
+        my_delay(250);
+        delay(500);
+        *pinB |= 0x00;
+        display.clearDisplay();
+        display.setCursor(20, 17);
+        display.println("Locking");
+        display.display();
+        myStepper.step(invertedSPR);
+        delay(500);
+        myStepper.step(0);
+        display.clearDisplay();
+        display.setCursor(30, 0);
+        display.println("Locked");
+        display.setCursor(20, 30);
+        display.println("Press *");
+        display.setCursor(10, 50);
+        display.println("To Unlock");
+        display.display();
+        locked = 1;
+      } else {
+        display.clearDisplay();
+        display.setCursor(22, 18);
+        display.println("Already");
+        display.setCursor(28, 40);
+        display.println("Locked");
+        display.display();
+        delay(2000);
+        break;
       }
     }
   }
@@ -181,43 +320,46 @@ void my_delay(unsigned int freq) {
   // Generate square wave on Pin 12 with specified frequency
 }
 
-void adc_init() {
+void adc_init()
+{
   // setup the A register
-  *my_ADCSRA |= 0b10000000;  // set bit   7 to 1 to enable the ADC
-  *my_ADCSRA &= 0b11011111;  // clear bit 6 to 0 to disable the ADC trigger mode
-  *my_ADCSRA &= 0b11110111;  // clear bit 5 to 0 to disable the ADC interrupt
-  *my_ADCSRA &= 0b11111000;  // clear bit 0-2 to 0 to set prescaler selection to slow reading
+  *my_ADCSRA |= 0b10000000; // set bit   7 to 1 to enable the ADC
+  *my_ADCSRA &= 0b11011111; // clear bit 6 to 0 to disable the ADC trigger mode
+  *my_ADCSRA &= 0b11110111; // clear bit 5 to 0 to disable the ADC interrupt
+  *my_ADCSRA &= 0b11111000; // clear bit 0-2 to 0 to set prescaler selection to slow reading
   // setup the B register
-  *my_ADCSRB &= 0b11110111;  // clear bit 3 to 0 to reset the channel and gain bits
-  *my_ADCSRB &= 0b11111000;  // clear bit 2-0 to 0 to set free running mode
+  *my_ADCSRB &= 0b11110111; // clear bit 3 to 0 to reset the channel and gain bits
+  *my_ADCSRB &= 0b11111000; // clear bit 2-0 to 0 to set free running mode
   // setup the MUX Register
-  *my_ADMUX &= 0b01111111;  // clear bit 7 to 0 for AVCC analog reference
-  *my_ADMUX |= 0b01000000;  // set bit   6 to 1 for AVCC analog reference
-  *my_ADMUX &= 0b11011111;  // clear bit 5 to 0 for right adjust result
-  *my_ADMUX &= 0b11100000;  // clear bit 4-0 to 0 to reset the channel and gain bits
+  *my_ADMUX  &= 0b01111111; // clear bit 7 to 0 for AVCC analog reference
+  *my_ADMUX  |= 0b01000000; // set bit   6 to 1 for AVCC analog reference
+  *my_ADMUX  &= 0b11011111; // clear bit 5 to 0 for right adjust result
+  *my_ADMUX  &= 0b11100000; // clear bit 4-0 to 0 to reset the channel and gain bits
 }
 
-unsigned int adc_read(unsigned char adc_channel_num) {
+unsigned int adc_read(unsigned char adc_channel_num)
+{
   // clear the channel selection bits (MUX 4:0)
-  *my_ADMUX &= 0b11100000;
+  *my_ADMUX  &= 0b11100000;
   // clear the channel selection bits (MUX 5)
   *my_ADCSRB &= 0b11110111;
   // set the channel number
-  if (adc_channel_num > 7) {
+  if(adc_channel_num > 7)
+  {
     // set the channel selection bits, but remove the most significant bit (bit 3)
     adc_channel_num -= 8;
     // set MUX bit 5
     *my_ADCSRB |= 0b00001000;
   }
   // set the channel selection bits
-  *my_ADMUX += adc_channel_num;
+  *my_ADMUX  += adc_channel_num;
   // set bit 6 of ADCSRA to 1 to start a conversion
   *my_ADCSRA |= 0x40;
   // wait for the conversion to complete
-  while ((*my_ADCSRA & 0x40) != 0)
-    ;
+  while((*my_ADCSRA & 0x40) != 0);
   // return the result in the ADC data register
   return *my_ADC_DATA;
+
 }
 
 void U0init(int U0baud) {
@@ -247,18 +389,18 @@ void U0putcahr(unsigned char U0pdata) {
 
 uint8_t getID() {
   // Getting ready for Reading PICCs
-  if ( ! mfrc522.PICC_IsNewCardPresent()) { //If a new PICC placed to RFID reader continue
+  if (!mfrc522.PICC_IsNewCardPresent()) {  //If a new PICC placed to RFID reader continue
     return 0;
   }
-  if ( ! mfrc522.PICC_ReadCardSerial()) {   //Since a PICC placed get Serial and continue
+  if (!mfrc522.PICC_ReadCardSerial()) {  //Since a PICC placed get Serial and continue
     return 0;
   }
   TagID = "";
-  for ( uint8_t i = 0; i < 4; i++) {  // The MIFARE PICCs that we use have 4 byte UID
+  for (uint8_t i = 0; i < 4; i++) {  // The MIFARE PICCs that we use have 4 byte UID
     readCard[i] = mfrc522.uid.uidByte[i];
-    TagID.concat(String(mfrc522.uid.uidByte[i], HEX)); // Adds the 4 bytes in a single String variable
+    TagID.concat(String(mfrc522.uid.uidByte[i], HEX));  // Adds the 4 bytes in a single String variable
   }
   TagID.toUpperCase();
-  mfrc522.PICC_HaltA(); // Stop reading
+  mfrc522.PICC_HaltA();  // Stop reading
   return 1;
 }
