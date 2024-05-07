@@ -75,6 +75,9 @@ Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_N
 bool running = true;
 bool passcodeCheck, rfidCheck;
 char relock;
+int stepsPerRevolution = 2048;
+Stepper myStepper(stepsPerRevolution,23,25,27,29);
+int motSpeed = 10;
 
 void setup() {
   //U0init(9600);
@@ -83,6 +86,7 @@ void setup() {
   SPI.begin();
   mfrc522.PCD_Init();
   mfrc522.PCD_DumpVersionToSerial();
+  myStepper.setSpeed(motSpeed);
   //lcd.print("Enter Passcode");
 }
 
@@ -120,6 +124,9 @@ void loop() {
               //lcd.clear();
               //lcd.print("Access Granted");
               //turn on step motor, turn on green light
+              myStepper.step(stepsPerRevolution);
+              delay(100);
+              myStepper.step(0);
               *pinB |= 0x40;
               my_delay(300);
             } else if(correctNums != 4){
@@ -136,6 +143,9 @@ void loop() {
           //reverse nice bee
           *pinB |= 0x40;
           my_delay(250);
+          myStepper.step(-stepsPerRevolution);
+          delay(100);
+          myStepper.step(0);
         }
       }
     }
