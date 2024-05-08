@@ -1,6 +1,6 @@
 /*
 Authors: Jackson Robertson, Timmy Norris, John Althoff
-Assignment: Fianl Project
+Assignment: Final Project
 Purpose: Creating a locking system that turns off when interrupt button pressed or Fire alert activates. 
 Date: 5/1/2024
 */
@@ -124,7 +124,7 @@ void setup() {
   display.display();
   display.setTextSize(2);
   URTCLIB_WIRE.begin();
-  attachInterrupt(digitalPinToInterrupt(button),toggleSystem,FALLING);
+  attachInterrupt(digitalPinToInterrupt(button),interrupt,FALLING);
 }
 
 void loop() {
@@ -452,7 +452,7 @@ uint8_t getID() {
   return 1;
 }
 
-void toggleSystem(){
+void interrupt(){
   systemOn = !systemOn;
   if(systemOn){
     running = false;
