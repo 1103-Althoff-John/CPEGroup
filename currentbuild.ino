@@ -51,15 +51,6 @@ volatile unsigned char *portB = 0x25;
 volatile unsigned char *portDDRB = 0x24;
 volatile unsigned char *pinB = 0x23;
 
-volatile unsigned char* port_e = (unsigned char*) 0x2E; 
-volatile unsigned char* ddr_e  = (unsigned char*) 0x2D; 
-volatile unsigned char* pin_e  = (unsigned char*) 0x2C;
-
-volatile unsigned char* port_d = (unsigned char*) 0x2B; 
-volatile unsigned char* ddr_d  = (unsigned char*) 0x2A; 
-volatile unsigned char* pin_d  = (unsigned char*) 0x29; 
-
-
 volatile unsigned char *myTCCR1A = 0x80;
 volatile unsigned char *myTCCR1B = 0x81;
 volatile unsigned char *myTCCR1C = 0x82;
@@ -102,9 +93,9 @@ void setup() {
   //U0init(9600);
   adc_init();
   Serial.begin(9600);
-  *ddr_d |= 0x01;
-  *ddr_e |= 0x08;
   *portDDRB |= 0x40;
+  *portDDRB |= 0x80;
+  *portDDRB |= 0x10;
   SPI.begin();
   mfrc522.PCD_Init();
   mfrc522.PCD_DumpVersionToSerial();
@@ -144,14 +135,14 @@ void loop() {
   int ID = 0;
 
   while (running == true) {
-   //*port_e |= 0x08;
-   //*port_d |= 0x01;
-   //port_d &= 0xFE;
-   //port_e &= 0xF7;
+    *portB |= (0x01 << 7);
+    *portB &= ~(0x01 << 4); 
     unsigned int adc = adc_read(15);
     int tempf = adc/7.1;
     Serial.println(tempf);
     if(tempf >= 120) {
+      *portB &= ~(0x01 << 7);
+      *portB |= (0x01 << 4);
       display.clearDisplay();
       display.setCursor(0, 0);
       display.println("Fire Alert");
