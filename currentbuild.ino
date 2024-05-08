@@ -13,7 +13,7 @@ RFID: 45,43,41,39,37
 
 #define RDA 0x80
 #define TBE 0x20
-//#include <LiquidCrystal.h>
+
 #include <Keypad.h>
 #include <Stepper.h>
 #include <Wire.h>
@@ -22,16 +22,20 @@ RFID: 45,43,41,39,37
 #include <I2C_RTC.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include "uRTCLib.h"
 
 #define SS_PIN 53
 #define RST_PIN 5
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_ADDR 0x3C
+uRTCLib rtc(0x68);
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);
+
+char daysOfTheWeek[7][12] = {"Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"};
 
 const int ROW_NUM = 4;
 const int COLUMN_NUM = 4;
@@ -128,18 +132,21 @@ void setup() {
   display.println("# To lock");
   display.display();
   display.setTextSize(2);
+  URTCLIB_WIRE.begin();
 }
 
 void loop() {
+  rtc.refresh();
   int correctNums = 0;
   int ID = 0;
+  
 
   while (running == true) {
     *portB |= (0x01 << 7);
     *portB &= ~(0x01 << 4); 
     unsigned int adc = adc_read(15);
+    serialout(adc);
     int tempf = adc/7.1;
-    Serial.println(tempf);
     if(tempf >= 120) {
       *portB &= ~(0x01 << 7);
       *portB |= (0x01 << 4);
@@ -282,8 +289,13 @@ void loop() {
   }
 }
 
-
-
+void serialout(unsigned int adc)
+{
+U0putchar((adc*0.0149)+'0');
+U0putchar(((adc/100)%10)+'0');
+U0putchar('F');
+U0putchar('\n');
+}
 
 void my_delay(unsigned int freq) {
   // calc period
