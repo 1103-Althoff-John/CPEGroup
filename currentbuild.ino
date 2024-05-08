@@ -27,6 +27,7 @@ RFID: 45,43,41,39,37
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 #define OLED_ADDR 0x3C
+
 uRTCLib rtc(0x68);
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -66,10 +67,8 @@ String TagID = "";
 
 char passcode[4] = { '1', '2', '3', '4' };
 
+int button = 2;
 
-/*const int SCL = 4 SDA = 3;
-LiquidCrystal lcd(SCL, SDA);
-*/
 char keys[ROW_NUM][COLUMN_NUM] = {
   { '1', '2', '3', 'A' },
   { '4', '5', '6', 'B' },
@@ -81,7 +80,7 @@ byte pin_rows[ROW_NUM] = { 48, 46, 44, 42 };       //connect to the row pinouts 
 byte pin_column[COLUMN_NUM] = { 40, 38, 36, 34 };  //connect to the column pinouts of the keypad
 
 Keypad keypad = Keypad(makeKeymap(keys), pin_rows, pin_column, ROW_NUM, COLUMN_NUM);
-
+                           
 bool running = true;
 bool passcodeCheck, rfidCheck;
 char relock;
@@ -92,7 +91,6 @@ int motSpeed = 10;
 int locked = 1;
 
 void setup() {
-  Serial.begin(9600);
   U0init(9600);
   adc_init();
   *portDDRB |= 0x40;
@@ -100,9 +98,7 @@ void setup() {
   *portDDRB |= 0x10;
   SPI.begin();
   mfrc522.PCD_Init();
-  mfrc522.PCD_DumpVersionToSerial();
   myStepper.setSpeed(motSpeed);
-  //lcd.print("Enter Passcode");
   display.begin(SSD1306_SWITCHCAPVCC, OLED_ADDR);
   display.clearDisplay();
 
@@ -143,7 +139,7 @@ void loop() {
     *portB |= (0x01 << 7);
     *portB &= ~(0x01 << 4); 
     unsigned int adc = adc_read(15);
-    serialout(adc);
+    //serialout(adc);
     int tempf = adc/7.1;
     if(tempf >= 120) {
       *portB &= ~(0x01 << 7);
@@ -161,7 +157,8 @@ void loop() {
       U0putchar('e');
       U0putchar('r');
       U0putchar('t');
-      U0putchar('\n');
+      U0putchar(' ');
+      event();
        *pinB |= 0x40;
        my_delay(1000);
       display.display();
@@ -194,6 +191,15 @@ void loop() {
           display.clearDisplay();
           display.setCursor(20, 17);
           display.println("Locking");
+            U0putchar('L');
+            U0putchar('o');
+            U0putchar('c');
+            U0putchar('k');
+            U0putchar('i');
+            U0putchar('n');
+            U0putchar('g');
+            U0putchar(' ');
+            event();
           display.display();
           myStepper.step(invertedSPR);
           delay(1000);
@@ -238,7 +244,8 @@ void loop() {
             U0putchar('i');
             U0putchar('n');
             U0putchar('g');
-            U0putchar('\n');
+            U0putchar(' ');
+            event();
             display.display();
             display.clearDisplay();
             myStepper.step(stepsPerRevolution);
@@ -268,11 +275,8 @@ void loop() {
           }
         }
       }
-      //check for keypad input for relocking #
     }
     if (key1 == '#') {
-      //make close lock
-      //reverse nice bee
       if (locked == 0) {
         *pinB |= 0x40;
         my_delay(250);
@@ -288,7 +292,8 @@ void loop() {
         U0putchar('i');
         U0putchar('n');
         U0putchar('g');
-        U0putchar('\n');
+        U0putchar(' ');
+        event();
         display.display();
         myStepper.step(invertedSPR);
         delay(500);
@@ -433,3 +438,72 @@ uint8_t getID() {
   mfrc522.PICC_HaltA();  // Stop reading
   return 1;
 }
+
+void event() {
+  unsigned char hour1 = ((rtc.hour())/10 + '0');
+  unsigned char hour2 = ((rtc.hour())%10 + '0');
+  unsigned char min1 = ((rtc.minute())/10 + '0');
+  unsigned char min2 = ((rtc.minute())%10 + '0');
+  unsigned char sec1 = ((rtc.second())/10 + '0');
+  unsigned char sec2 = ((rtc.second())%10 + '0');
+  unsigned char year1 = ((rtc.year())/10 + '0');
+  unsigned char year2 = ((rtc.year())%10 + '0');
+  unsigned char mon1 = ((rtc.month())/10 + '0');
+  unsigned char mon2 = ((rtc.month())%10 + '0');
+  unsigned char day1 = ((rtc.day())/10 + '0');
+  unsigned char day2 = ((rtc.day())%10 + '0');
+
+U0putchar('E');
+U0putchar('v');
+U0putchar('e');
+U0putchar('n');
+U0putchar('t');
+U0putchar(' ');
+U0putchar('o');
+U0putchar('c');
+U0putchar('c');
+U0putchar('u');
+U0putchar('r');
+U0putchar('r');
+U0putchar('e');
+U0putchar('d');
+U0putchar(' ');
+U0putchar('a');
+U0putchar('t');
+U0putchar(' ');
+U0putchar('t');
+U0putchar('i');
+U0putchar('m');
+U0putchar('e');
+U0putchar(':');
+U0putchar(' ');
+U0putchar(hour1);
+U0putchar(hour2);
+U0putchar(':');
+U0putchar(min1);
+U0putchar(min2);
+U0putchar(':');
+U0putchar(sec1);
+U0putchar(sec2);
+U0putchar(' ');
+U0putchar('a');
+U0putchar('n');
+U0putchar('d');
+U0putchar(' ');
+U0putchar('d');
+U0putchar('a');
+U0putchar('t');
+U0putchar('e');
+U0putchar(':');
+U0putchar(' ');
+U0putchar(mon1);
+U0putchar(mon2);
+U0putchar('/');
+U0putchar(day1);
+U0putchar(day2);
+U0putchar('/');
+U0putchar(year1);
+U0putchar(year2);
+U0putchar('\n');
+}
+
