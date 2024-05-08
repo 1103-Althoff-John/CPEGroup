@@ -1,13 +1,8 @@
 /*
-buzzer = 12;
-Keypad = 48, 46,44,42(ROWS) 40,38,36,34(COLMS);
-LCD; rs = 11; en = 10; d4 = 2; d5 = 3; d6 = 4; d7 = 5;
-RealTime = 22,24,26;
-Stepper: 23,25,27,29;
-Photresistor: A0
-Buttons: (off) 49 (on) 47; 
-LEDS: RED(Locked) 10 Green(Unlocked) 9;
-RFID: 45,43,41,39,37
+Authors: Jackson Robertson, Timmy Norris, John Althoff
+Assignment: Fianl Project
+Purpose: Creating a locking system that turns off when interrupt button pressed or Fire alert activates. 
+Date: 5/1/2024
 */
 #define RDA 0x80
 #define TBE 0x20
@@ -69,6 +64,8 @@ char passcode[4] = { '1', '2', '3', '4' };
 
 int button = 2;
 
+volatile bool systemOn = true;
+
 char keys[ROW_NUM][COLUMN_NUM] = {
   { '1', '2', '3', 'A' },
   { '4', '5', '6', 'B' },
@@ -127,13 +124,29 @@ void setup() {
   display.display();
   display.setTextSize(2);
   URTCLIB_WIRE.begin();
+  attachInterrupt(digitalPinToInterrupt(button),toggleSystem,FALLING);
 }
 
 void loop() {
   rtc.refresh();
   int correctNums = 0;
   int ID = 0;
-  
+  if(running == false){
+    *portB &= ~(0x01 << 7);
+    *portB |= (0x01 << 4);
+    U0putchar('S');
+    U0putchar('y');
+    U0putchar('s');
+    U0putchar('t');
+    U0putchar('e');
+    U0putchar('m');
+    U0putchar(' ');
+    U0putchar('O');
+    U0putchar('f');
+    U0putchar('f');
+    U0putchar(' ');
+    event();
+  }
 
   while (running == true) {
     *portB |= (0x01 << 7);
@@ -439,6 +452,16 @@ uint8_t getID() {
   return 1;
 }
 
+void toggleSystem(){
+  systemOn = !systemOn;
+  if(systemOn){
+    running = false;
+  }
+  else{
+    running = true;
+  }
+}
+
 void event() {
   unsigned char hour1 = ((rtc.hour())/10 + '0');
   unsigned char hour2 = ((rtc.hour())%10 + '0');
@@ -506,4 +529,3 @@ U0putchar(year1);
 U0putchar(year2);
 U0putchar('\n');
 }
-
