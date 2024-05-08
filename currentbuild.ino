@@ -111,7 +111,7 @@ void setup() {
   display.setCursor(30, 40);
   display.println("V 2.8");
   display.display();
-  delay(2000);
+  my_delay(2000);
   display.clearDisplay();
   display.setCursor(25, 0);
   display.setTextSize(2);
@@ -172,10 +172,10 @@ void loop() {
       U0putchar('t');
       U0putchar(' ');
       event();
-       *pinB |= 0x40;
-       my_delay(1000);
+      *pinB |= 0x40;
+      my_delay(1000);
       display.display();
-      delay(10);
+      my_delay(10);
       running = false;
     }
     //get input from light sensor and set LED brightness
@@ -196,10 +196,10 @@ void loop() {
           display.setCursor(18, 37);
           display.println("Unlocked");
           display.display();
-          delay(2000);
+          my_delay(2000);
           *pinB |= 0x40;
           my_delay(1000);
-          delay(500);
+          my_delay(500);
           *pinB |= 0x00;
           display.clearDisplay();
           display.setCursor(20, 17);
@@ -215,7 +215,7 @@ void loop() {
             event();
           display.display();
           myStepper.step(invertedSPR);
-          delay(1000);
+          my_delay(1000);
           myStepper.step(0);
           display.clearDisplay();
           display.setCursor(30, 0);
@@ -234,7 +234,7 @@ void loop() {
           display.display();
           U0putchar(key);
           keypadInput[i] = key;
-          delay(100);
+          my_delay(100);
           i++;
         }
       }
@@ -262,11 +262,11 @@ void loop() {
             display.display();
             display.clearDisplay();
             myStepper.step(stepsPerRevolution);
-            delay(100);
+            my_delay(100);
             myStepper.step(0);
             *pinB |= 0x40;
             my_delay(500);
-            delay(500);
+            my_delay(500);
             *pinB |= 0x00;
 
             display.setCursor(6, 0);
@@ -282,7 +282,7 @@ void loop() {
           } else if (correctNums != 4) {
             *pinB |= 0x40;
             my_delay(250);
-            delay(500);
+            my_delay(500);
             *pinB |= 0x00;
 
           }
@@ -293,7 +293,7 @@ void loop() {
       if (locked == 0) {
         *pinB |= 0x40;
         my_delay(250);
-        delay(500);
+        my_delay(500);
         *pinB |= 0x00;
         display.clearDisplay();
         display.setCursor(20, 17);
@@ -309,7 +309,7 @@ void loop() {
         event();
         display.display();
         myStepper.step(invertedSPR);
-        delay(500);
+        my_delay(500);
         myStepper.step(0);
         display.clearDisplay();
         display.setCursor(30, 0);
@@ -327,7 +327,7 @@ void loop() {
         display.setCursor(28, 40);
         display.println("Locked");
         display.display();
-        delay(2000);
+        my_delay(2000);
         break;
       }
     }
