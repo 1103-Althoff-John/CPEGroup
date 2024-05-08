@@ -9,8 +9,6 @@ Buttons: (off) 49 (on) 47;
 LEDS: RED(Locked) 10 Green(Unlocked) 9;
 RFID: 45,43,41,39,37
 */
-
-
 #define RDA 0x80
 #define TBE 0x20
 
@@ -153,6 +151,17 @@ void loop() {
       display.clearDisplay();
       display.setCursor(0, 0);
       display.println("Fire Alert");
+      U0putchar('F');
+      U0putchar('i');
+      U0putchar('r');
+      U0putchar('e');
+      U0putchar(' ');
+      U0putchar('A');
+      U0putchar('l');
+      U0putchar('e');
+      U0putchar('r');
+      U0putchar('t');
+      U0putchar('\n');
        *pinB |= 0x40;
        my_delay(1000);
       display.display();
@@ -220,6 +229,16 @@ void loop() {
             display.clearDisplay();
             display.setCursor(6, 0);
             display.println("Unlocking");
+            U0putchar('U');
+            U0putchar('n');
+            U0putchar('l');
+            U0putchar('o');
+            U0putchar('c');
+            U0putchar('k');
+            U0putchar('i');
+            U0putchar('n');
+            U0putchar('g');
+            U0putchar('\n');
             display.display();
             display.clearDisplay();
             myStepper.step(stepsPerRevolution);
@@ -262,6 +281,14 @@ void loop() {
         display.clearDisplay();
         display.setCursor(20, 17);
         display.println("Locking");
+        U0putchar('l');
+        U0putchar('o');
+        U0putchar('c');
+        U0putchar('k');
+        U0putchar('i');
+        U0putchar('n');
+        U0putchar('g');
+        U0putchar('\n');
         display.display();
         myStepper.step(invertedSPR);
         delay(500);
