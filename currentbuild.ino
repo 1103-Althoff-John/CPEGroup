@@ -90,9 +90,9 @@ int motSpeed = 10;
 int locked = 1;
 
 void setup() {
-  //U0init(9600);
-  adc_init();
   Serial.begin(9600);
+  U0init(9600);
+  adc_init();
   *portDDRB |= 0x40;
   *portDDRB |= 0x80;
   *portDDRB |= 0x10;
@@ -197,7 +197,7 @@ void loop() {
           display.setCursor(i * 11 + 40, 17);
           display.println(key);
           display.display();
-          Serial.println(key);
+          U0putchar(key);
           keypadInput[i] = key;
           delay(100);
           i++;
@@ -372,9 +372,8 @@ unsigned char U0getchar() {
   return *myUDR0;
 }
 
-void U0putcahr(unsigned char U0pdata) {
-  while (!(TBE & *myUCSR0A))
-    ;
+void U0putchar(unsigned char U0pdata) {
+  while (!(TBE & *myUCSR0A));
   *myUDR0 = U0pdata;
 }
 
