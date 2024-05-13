@@ -131,6 +131,7 @@ void loop() {
   rtc.refresh();
   int correctNums = 0;
   int ID = 0;
+  //Declaring the System off while either interrupt button is pressed or fire alert is going off. 
   if(running == false){
     *portB &= ~(0x01 << 7);
     *portB |= (0x01 << 4);
@@ -155,6 +156,7 @@ void loop() {
     //serialout(adc);
     int tempf = adc/7.1;
     if(tempf >= 120) {
+      //Turning on the fire alert system and setting off the buzzer sound to simulate the alarm. 
       *portB &= ~(0x01 << 7);
       *portB |= (0x01 << 4);
       display.clearDisplay();
@@ -178,19 +180,21 @@ void loop() {
       my_delay(10);
       running = false;
     }
-    //get input from light sensor and set LED brightness
     char key1 = keypad.getKey();
     if (key1 == '*') {
+      //Start the unlocking process if the * key is pressed. 
       display.clearDisplay();
       display.display();
       char keypadInput[4];
       for (int i = 0; i < 4;) {
+        //getting the user input to see if they input the right code. 
         char key = keypad.getKey();
-        ID = getID();
+        ID = getID(); //Get the RFID tag ID for the keyfob 
         if (TagID == MasterTag) {
           break;
         }
         if (locked == 0) {
+          //Locking the system automatically if the user attempts to unlock the system while already unlocked. 
           display.setCursor(20, 17);
           display.println("Already");
           display.setCursor(18, 37);
@@ -229,6 +233,7 @@ void loop() {
           break;
         }
         if (key) {
+          //Displaying the user input on the monitor as each button is pressed. 
           display.setCursor(i * 11 + 40, 17);
           display.println(key);
           display.display();
@@ -238,13 +243,14 @@ void loop() {
           i++;
         }
       }
+      //checking the user input array to see if it matches the passcode array, or seeing if the TagID matches the MasterTagID 
       for (int g = 0; g < 4; g++) {
         if (keypadInput[g] > 0 || TagID == MasterTag) {
           if (keypadInput[g] == passcode[g]) {
             correctNums++;
           }
           if (correctNums == 4 || TagID == MasterTag) {
-            //turn on step motor, turn on green light
+            //turn on step motor, display that the system is unlocking, and have buzzer make sound. 
             display.clearDisplay();
             display.setCursor(6, 0);
             display.println("Unlocking");
@@ -268,7 +274,7 @@ void loop() {
             my_delay(500);
             my_delay(500);
             *pinB |= 0x00;
-
+            //Display user options while the system is unlocked. 
             display.setCursor(6, 0);
             display.println(" Unlocked");
             display.setCursor(20, 30);
@@ -290,6 +296,7 @@ void loop() {
       }
     }
     if (key1 == '#') {
+      //Lock the system if the # key is pressed, turn on the step motor, have buzzer play sound. 
       if (locked == 0) {
         *pinB |= 0x40;
         my_delay(250);
@@ -311,6 +318,7 @@ void loop() {
         myStepper.step(invertedSPR);
         my_delay(500);
         myStepper.step(0);
+        //Display user options while the system if locked. 
         display.clearDisplay();
         display.setCursor(30, 0);
         display.println("Locked");
@@ -321,6 +329,7 @@ void loop() {
         display.display();
         locked = 1;
       } else {
+        //Display already locked if user tries to lock if already locked. 
         display.clearDisplay();
         display.setCursor(22, 18);
         display.println("Already");
